@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Data folder
+data/
+
+# PyTorch checkpoints
+*.pt
+*.ckpt

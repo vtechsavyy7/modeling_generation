@@ -18,6 +18,7 @@ dependencies = [
     "pandas",
     "ipykernel",
     "jupyterlab",
+    "wandb>=0.31.0",
 ]
 
 [tool.uv.sources]

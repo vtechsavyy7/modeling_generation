@@ -220,6 +220,12 @@ __marimo__/
 # Data folder
 data/
 
+# Books and papers
+books_papers/
+
+# Ignore WandB logs
+wandb/
+
 # PyTorch checkpoints
 *.pt
 *.ckpt

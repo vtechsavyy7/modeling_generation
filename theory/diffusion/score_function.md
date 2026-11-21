@@ -10,3 +10,11 @@ For a given probability density function $p(x)$ on $\mathbb{R}^D$, the score fun
 $$
 s(x) = \nabla_x \log p(x),    s: \mathbb{R}^D \to \mathbb{R}^D
 $$
+
+## TODO: 
+
+- Proof that the Score Matching loss can be reduced to terms involving only the score function and its derivatives
+  - Uses integration by parts and properties of the score function. 
+
+
+- Use of the Score Function for Langevin Dynamics based sampling.

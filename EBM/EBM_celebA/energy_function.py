@@ -20,13 +20,16 @@ class EnergyFunction(nn.Module):
         c_hid3 = num_channels_first_layer * 4
 
         # Series of convolutions and Swish activation functions
+        # Input image has 3 channels (RGB) and size 128x128
         self.conv_layers = nn.Sequential(
-                nn.Conv2d(1, c_hid1, kernel_size=5, stride=2, padding=2), # [32x32] - Padding of 2 to maintain spatial dimensions after stride 2
+                nn.Conv2d(3, c_hid1, kernel_size=5, stride=2, padding=2), # [64x64] - Padding of 2 to maintain spatial dimensions after stride 2
                 Swish(),
-                nn.Conv2d(c_hid1, c_hid2, kernel_size=3, stride=2, padding=1), #  [16x16]
+                nn.Conv2d(c_hid1, c_hid2, kernel_size=3, stride=2, padding=1), #  [32x32]
                 Swish(),
-                nn.Conv2d(c_hid2, c_hid3, kernel_size=3, stride=2, padding=1), # [8x8]
+                nn.Conv2d(c_hid2, c_hid3, kernel_size=3, stride=2, padding=1), # [16x16]
                 Swish(),
+                nn.Conv2d(c_hid3, c_hid3, kernel_size=3, stride=2, padding=1), # [8x8]
+                Swish(), 
                 nn.Conv2d(c_hid3, c_hid3, kernel_size=3, stride=2, padding=1), # [4x4]
                 Swish()
         )
@@ -42,7 +45,7 @@ class EnergyFunction(nn.Module):
         """Forward pass through the CNN to compute energy.
         
         Args:
-            x (torch.Tensor): Input image tensor of shape (batch_size, 1, 64, 64).
+            x (torch.Tensor): Input image tensor of shape (batch_size, 3, 128, 128).
             
         Returns:
             torch.Tensor: Energy values of shape (batch_size, 1).

@@ -5,19 +5,21 @@ import random
 import numpy as np
 
 class LangevinSampler(nn.Module):
-    """A sampler for generating images from a trained CNNEnergy model.
-    It uses Langevin dynamics to sample from the energy landscape defined by the CNNEnergy model.
-    The sampler maintains a buffer of previously generated samples, which are used to initialize new samples.
-    This helps to improve the diversity of the generated samples and allows the sampler to explore different regions of the energy landscape."""
+    """Generate images from an energy-based model using Langevin dynamics.
+
+    Previously generated samples are maintained in a buffer and reused to
+    initialize new sampling runs.
+    """
 
     def __init__(self, energy_function, img_shape, batch_size, max_len=8192):
-        """
-        Inputs:
-            energy_function - The energy function to compute the energy of the samples.
-                             This should be a neural network that takes images as input and outputs a scalar energy value.
-            img_shape - Shape of the images to model
-            batch_size - Batch size of the samples
-            max_len - Maximum number of data points to keep in the buffer
+        """Initialize the sampler and its sample buffer.
+
+        Args:
+            energy_function: Neural network that computes an energy for each
+                input image.
+            img_shape: Shape of an individual image, excluding the batch dimension.
+            batch_size: Number of images to generate in each batch.
+            max_len: Maximum number of samples to retain in the buffer.
         """
         super().__init__()
         self.energy_function = energy_function
@@ -35,11 +37,14 @@ class LangevinSampler(nn.Module):
         self.buffer = [(torch.rand((1,)+img_shape, device=self.device)*2-1) for _ in range(self.batch_size)]
 
     def sample_new_exmps(self, steps=60, step_size=10):
-        """
-        Function for getting a new batch of "fake" images.
-        Inputs:
-            steps - Number of iterations in the MCMC algorithm
-            step_size - Learning rate nu in the algorithm above
+        """Generate a batch of images and add them to the sample buffer.
+
+        Args:
+            steps: Number of Langevin dynamics iterations.
+            step_size: Scale of each gradient update.
+
+        Returns:
+            A tensor of generated images with shape ``(batch_size, *img_shape)``.
         """
         # Choose 95% of the batch from the buffer, 5% generate from scratch
         n_new = np.random.binomial(self.batch_size, 0.05)
@@ -58,15 +63,21 @@ class LangevinSampler(nn.Module):
 
     @staticmethod
     def generate_samples(energy_function, inp_imgs, steps=60, step_size=10, return_img_per_step=False):
-        """
-        Function for sampling images for a given energy function.
-        Inputs:
-            energy_function - The energy function to compute the energy of the samples.
-                             This should be a neural network that takes images as input and outputs a scalar energy value.
-            inp_imgs - Images to start from for sampling.
-            steps - Number of iterations in the MCMC using gradients algorithm.
-            step_size - Learning rate nu in the algorithm above
-            return_img_per_step - If True, we return the sample at every iteration of the MCMC
+        """Sample images using Langevin dynamics for the given energy function.
+
+        Args:
+            energy_function: Neural network that computes an energy for each
+                input image.
+            inp_imgs: Initial image tensor, updated in place during sampling.
+            steps: Number of Langevin dynamics iterations.
+            step_size: Scale of each gradient update.
+            return_img_per_step: Whether to return images from every iteration
+                instead of only the final images.
+
+        Returns:
+            The final image tensor, or a tensor of images stacked by iteration
+            with shape ``(steps, *inp_imgs.shape)`` if return_img_per_step is
+            true.
         """
         # Store the training state of the model to restore it later
         is_training = energy_function.training

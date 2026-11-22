@@ -110,6 +110,7 @@ After running this process for $K$ steps, the resulting $x_K$ can be used as a s
 Notice that the gradient $\nabla_x E_\phi(x_k)$ is with respect to the sample $x_k$ and not the model parameters $\phi$. </br> This gradient guides the sample towards regions of lower energy, while the added noise ensures exploration of the energy landscape, allowing the Markov chain to approximate the target distribution effectively.
 
 ### Initialization of the Markov Chain
+(TODO: Correct notation: Use superscript for MCMC samples)
 
 The initialization of the Markov chain is an important consideration in MCMC sampling. A common approach is to start the chain from a random sample, often drawn from a simple distribution such as a Gaussian or uniform distribution. 
 
@@ -125,7 +126,7 @@ Running MCMC from pure random noise until it reaches true equilibrium takes thou
 
 During a single training step on a mini-batch of real data $ \{x_1, \dots, x_M\}$:
 
-1. **Sample Negatives**: Initialize ${x^{(0)}_i}_{i=1}^M$ (via CD, PCD, or Replay Buffer) and run $K$ steps of MCMC (with $\phi$ frozen) to get ${x^{(K)}_i}_{i=1}^M$.
+1. **Sample Negatives**: For each sample in the batch, initialize $\tilde{x}_0$ (via CD, PCD, or Replay Buffer) and run $K$ steps of MCMC (with $\phi$ frozen) to get $x_K$.
 2. **Compute Surrogate Loss**: Pass both real and generated batches through the energy network to compute a scalar surrogate loss:
 $$
 \mathcal{L}_{\text{surrogate}}(\phi)=\frac{1}{M}\sum _{i=1}^{M}E_{\phi }(x_{i})-\frac{1}{M}\sum _{i=1}^{M}E_{\phi }(x_{i}^{(K)})

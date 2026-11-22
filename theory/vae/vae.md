@@ -8,7 +8,7 @@
 
 ## Problem Formulation
 
-Let $\bold{X} = \{x_1, x_2, ..., x_n\}$ be a set of observed data points, where each $x_i$ is a high-dimensional vector.  </br>
+Let $\mathbf{X} = \{x_1, x_2, ..., x_n\}$ be a set of observed data points, where each $x_i$ is a high-dimensional vector.  </br>
 
 The goal of Variational Autoencoders (VAEs) is to learn a probabilistic model that can generate new data points similar to the observed data.
 i.e we want to model the underlying distribution of the data and be able to sample from it. 
@@ -29,6 +29,7 @@ and then mapping it to the data space through the generative model $p_\theta(x|z
 - The Evidence Lower Bound (ELBO) is a key concept in VAEs. It provides a tractable lower bound on the log-likelihood of the observed data, which we can maximize to learn the model parameters.
 
 - Let's start by defining the log-likelihood of the observed data
+
 $$
 \log p(\mathbb{X}) = \log p(x_1, x_2, ..., x_n)
 $$
@@ -66,6 +67,7 @@ ELBO &= \mathbb{E}_{z \sim q_\phi(z|x)} \left[ \log \frac{p_\theta(x | z) p(z)}{
 $$
 
 - In practice, the VAE loss function is defined as the negative ELBO, which we aim to minimize:
+
 $$
 \mathcal{L}_{\text{VAE}} = - \mathbb{E}_{z \sim q_\phi(z|x)}[\log p_\theta(x|z)] + \text{KL}(q_\phi(z|x) \| p(z))
 $$
@@ -109,14 +111,17 @@ $$
 **Step 1**: Write Out the Log-Likelihood of the Gaussian
 
 Suppose that $D$ is the dimensionality of the data vector $x$. Then the Gaussian likelihood can be written as:
+
 $$
 p_{\theta }(x\mid z)=\mathcal{N}(x;\,\mu _{\theta }(z),\,\sigma ^{2}I)=\left(\frac{1}{\sqrt{2\pi \sigma ^{2}}}\right)^{D}\exp \left(-\frac{\|{}x-\mu _{\theta }(z)\|{}^{2}}{2\sigma ^{2}}\right)
 $$
 
 Taking the natural logarithm ($\log $) of both sides converts the product/exponent into a sum:
+
 $$
 \log p_{\theta }(x\mid z)=\log \left[\left(2\pi \sigma ^{2}\right)^{-\frac{D}{2}}\right]-\frac{\|{}x-\mu _{\theta }(z)\|{}^{2}}{2\sigma ^{2}}
 $$
+
 $$
 \log p_{\theta }(x\mid z)=-\frac{D}{2}\log (2\pi \sigma ^{2})-\frac{1}{2\sigma ^{2}}\sum _{i=1}^{D}(x_{i}-\mu _{\theta ,i}(z))^{2}
 $$
@@ -124,10 +129,12 @@ $$
 **Step 2**: Handle the Expectation $\mathbb{E}_{q_{\phi }(z\mid x)}$
 
 Now we plug this log-likelihood back into the expectation over the encoder's distribution $q_\phi(z \mid x)$:
+
 $$
 \mathbb{E}_{q_{\phi }(z\mid x)}[\log p_{\theta }(x\mid z)]=\mathbb{E}_{q_{\phi }(z\mid x)}\left[-\frac{D}{2}\log (2\pi \sigma ^{2})-\frac{1}{2\sigma ^{2}}\|{}x-\mu _{\theta }(z)\|{}^{2}\right]
 $$
 Because the first term ($-\frac{D}{2}\log(2\pi\sigma^2)$) and the scalar multiplier ($\frac{1}{2\sigma ^{2}}$) do not depend on $z$, they can be pulled completely out of the expectation:
+
 $$
 \mathbb{E}_{q_{\phi }(z\mid x)}[\log p_{\theta }(x\mid z)]=-\frac{D}{2}\log (2\pi \sigma ^{2})-\frac{1}{2\sigma ^{2}}\mathbb{E}_{q_{\phi }(z\mid x)}\left[\|{}x-\mu _{\theta }(z)\|{}^{2}\right]
 $$
@@ -136,6 +143,7 @@ $$
 
 Evaluating the remaining expectation analytically is impossible because $\mu_\theta(z)$ is a complex, non-linear function wrapped inside a deep neural network (the decoder).
 To solve this, we use a Monte Carlo approximation. We draw $L$ random samples of $z$ from our encoder distribution $q_\phi(z \mid x)$ and calculate the average:
+
 $$
 \mathbb{E}_{q_{\phi }(z\mid x)}\left[\|{}x-\mu _{\theta }(z)\|{}^{2}\right]\approx \frac{1}{L}\sum _{l=1}^{L}\|{}x-\mu _{\theta }(z^{(l)})\|{}^{2}\quad \text{where\ }z^{(l)}\sim q_{\phi }(z\mid x)
 $$
@@ -147,11 +155,13 @@ In practice, when training VAEs with mini-batch stochastic gradient descent, set
 
 Because the sampling operation $z \sim q_\phi(z \mid x)$ is not differentiable with respect to the encoder parameters $\phi$, we cannot backpropagate through it directly. 
 The Reparameterization Trick solves this by expressing $z$ as a differentiable transformation of a noise variable $\epsilon$ that is independent of $\phi$:
+
 $$
 z = \mu_\phi(x) + \sigma_\phi(x) \odot \epsilon, \quad \epsilon \sim \mathcal{N}(0, I)
 $$
 
 Now that we have a random sample of $z_\phi$ from the encoder, we can feed it to the decoder to get $\mu_\theta(z)$, and evaluate:
+
 $$
 \mathbb{E}_{q_{\phi }(z\mid x)}[\log p_{\theta }(x\mid z)]\approx -\frac{D}{2}\log (2\pi \sigma ^{2})-\frac{1}{2\sigma ^{2}}\|{}x-\mu _{\theta }(z_\phi)\|{}^{2}
 $$
@@ -165,6 +175,7 @@ We can drop the terms that do not contain learnable weights ($\theta $ or $\phi 
 2. The fixed variance is chosen to be $\sigma^2 = 0.5$. This causes the scaling factor $\frac{1}{2\sigma ^{2}}$ to become exactly $\frac{1}{2(0.5)} = 1$.
 
 Thus, 
+
 $$
 \mathbb{E}_{q_{\phi }(z\mid x)}[\log p_{\theta }(x\mid z)]\approx -\|{}x-\mu _{\theta }(z_\phi)\|{}^{2}
 $$

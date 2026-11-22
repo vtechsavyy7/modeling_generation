@@ -29,6 +29,7 @@ $$
 $$
 
 Let's look at the log-likelihood for a single data point:
+
 $$
 \log p_\phi(x) = -E_\phi(x) - \log Z_\phi
 $$
@@ -40,6 +41,7 @@ $$
 $$
 
 The gradient of the negative log-likelihood with respect to $\phi$ for a single data point is:
+
 $$
 \nabla_\phi \mathcal{L}_{\text{NLL}}(\phi) = \nabla_\phi E_\phi(x) + \nabla_\phi \log Z_\phi
 $$
@@ -52,37 +54,46 @@ In the next section, we will derive the gradient of the log partition function a
 ## Gradient of the Log Partition Function
 
 Using the formula for the gradient of the logarithm, the gradient of the log partition function with respect to $\phi$ is:
+
 $$
 \nabla_\phi \log Z_\phi = \frac{1}{Z_\phi} \nabla_\phi Z_\phi
 $$
 
 Substituting the definition of $Z_\phi$, and taking the gradient operator inside the integral we get:
 Note that we are assuming the interchange of the gradient and the integral is valid, which holds under certain regularity conditions.
+
 $$
 \nabla_\phi Z_\phi = \nabla_\phi \int \exp[-E_\phi(x)] dx = \int \nabla_\phi \exp[-E_\phi(x)] dx
 $$
 
 Using the chain rule of gradients for the exponential function, we have:
+
 $$
 \nabla_\phi \exp[-E_\phi(x)] = -\exp[-E_\phi(x)] \cdot \nabla_\phi E_\phi(x)
 $$
 Thus,
+
 $$
 \nabla_\phi Z_\phi = -\int \exp[-E_\phi(x)] \cdot \nabla_\phi E_\phi(x) dx
 $$
 and
+
 $$
 \nabla_\phi \log Z_\phi = -\frac{1}{Z_\phi} \int \exp[-E_\phi(x)] \cdot \nabla_\phi E_\phi(x) dx
 $$
+
 The partition function $Z_\phi$ can be taken inside the integral since it is a constant with respect to $x$, allowing us to rewrite the expression as an expectation over the model distribution:
+
 $$
 \nabla_\phi \log Z_\phi = -\int \frac{\exp[-E_\phi(x)]}{Z_\phi} \cdot \nabla_\phi E_\phi(x) dx = -\mathbb{E}_{x \sim p_\phi(x)}[\nabla_\phi E_\phi(x)]
 $$
 
 Now, substituting this result back into the gradient of the negative log-likelihood, we get:
+
 $$
 \nabla_\phi \mathcal{L}_{\text{NLL}}(\phi) = \nabla_\phi E_\phi(x) - \mathbb{E}_{x \sim p_\phi(x)}[\nabla_\phi E_\phi(x)]
 $$
+
 This shows that the gradient consists of a **positive phase** term, which depends on the observed data, and a **negative phase** term, which depends on the model distribution.
 
 
@@ -91,6 +102,7 @@ This shows that the gradient consists of a **positive phase** term, which depend
 The negative phase term involves an expectation over the model distribution which is generally intractable to compute exactly.  </br> Therefore, we need to approximate it using sampling methods that use the Markov Chain Monte Carlo (MCMC) technique to draw samples from the model distribution.
 
 Given $M$ samples $\{x^{(m)}\}_{m=1}^M$ drawn from the model distribution $p_\phi(x)$ using MCMC, we can approximate the negative phase expectation as:
+
 $$
 \mathbb{E}_{x \sim p_\phi(x)}[\nabla_\phi E_\phi(x)] \approx \frac{1}{M} \sum_{m=1}^M \nabla_\phi E_\phi(x^{(m)})
 $$
@@ -100,6 +112,7 @@ $$
 To generate samples from the model distribution $p_\phi(x)$, we can use MCMC methods such as Gibbs sampling or Langevin dynamics. The key idea is to construct a Markov chain whose stationary distribution is the target distribution $p_\phi(x)$. By running the chain for a sufficient number of steps, we can obtain samples that approximate the model distribution.
 
 For example, in Langevin dynamics, the update rule for the samples is given by:
+
 $$
 x_{k+1} = x_k - \frac{\epsilon}{2} \nabla_x E_\phi(x_k) + \eta_k
 $$
@@ -128,10 +141,10 @@ During a single training step on a mini-batch of real data $ \{x_1, \dots, x_M\}
 
 1. **Sample Negatives**: For each sample in the batch, initialize $\tilde{x}_0$ (via CD, PCD, or Replay Buffer) and run $K$ steps of MCMC (with $\phi$ frozen) to get $x_K$.
 2. **Compute Surrogate Loss**: Pass both real and generated batches through the energy network to compute a scalar surrogate loss:
+
 $$
 \mathcal{L}_{\text{surrogate}}(\phi)=\frac{1}{M}\sum _{i=1}^{M}E_{\phi }(x_{i})-\frac{1}{M}\sum _{i=1}^{M}E_{\phi }(x_{i}^{(K)})
 $$
 3. **Backpropagate**: Call automatic differentiation on $\mathcal{L}_{\text{surrogate}}(\phi)$ with respect to $\phi$ (treating $x_{i}^{(K)}$ as fixed constants, i.e., detach() in PyTorch) and update $\phi$ via Adam or SGD.
-
 
 

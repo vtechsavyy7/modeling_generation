@@ -47,6 +47,11 @@ $$
 \log p(x) \geq \mathbb{E}_{z \sim q_\phi(z|x)} \left[ \log \frac{p(x, z)}{q_\phi(z|x)} \right]
 $$
 
+TODO: Explain the intuition behind using a marginal distribution from the joint distrubution over data and latent variables.
+In particular, the marginal likelihood $p(x)$ is obtained by integrating out the latent variable $z$ from the joint distribution $p(x, z)$. This allows us to focus on the observed data while still accounting for the latent structure captured by $z$.
+
+TODO: Try to derive the ELBO decomposition in a more fundamental manner. The fact that we introduce an approximate variational distribution and just multiply and divide by it inside the logarithm is not very intuitive at the moment.
+
 
 ### ELBO Decomposition for VAE loss
 

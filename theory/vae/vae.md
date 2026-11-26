@@ -8,19 +8,19 @@
 
 ## Problem Formulation
 
-Let $\mathbf{X} = \{x_1, x_2, ..., x_n\}$ be a set of observed data points, where each $x_i$ is a high-dimensional vector.  </br>
+Let $\mathbf{x} = \{x_1, x_2, ..., x_n\}$ be a set of observed data points, where each $x_i$ is a high-dimensional vector.  </br>
 
 The goal of Variational Autoencoders (VAEs) is to learn a probabilistic model that can generate new data points similar to the observed data.
 i.e we want to model the underlying distribution of the data and be able to sample from it. 
 
-Let us denote the probabilistic model as $p_\theta(\mathbb{X})$, where $\theta$ represents the parameters of the model.
+Let us denote the probabilistic model as $p(\mathbf{x})$ 
 
-TODO (Verify): Explain why we are going with a latent variable model for the data.
+In VAE's we use a latent variable model, where we introduce a latent variable $\mathbf{z}$ for each observed data point $\mathbf{x}$. The generative process is defined as first sampling $\mathbf{z}$ from a prior distribution $p(\mathbf{z})$ and then generating $\mathbf{x}$ from the conditional distribution $p(\mathbf{x}|\mathbf{z})$.
 
 The reason for introducing latent variables is that high-dimensional data often lies on a lower-dimensional manifold. 
 By modeling the data with latent variables, we can capture the underlying structure and dependencies in the data more effectively.
-The latent variable $z$ serves as a compact representation of the data, allowing the model to generate new samples by first sampling $z$ from a prior distribution 
-and then mapping it to the data space through the generative model $p_\theta(x|z)$.
+The latent variable $\mathbf{z}$ serves as a compact representation of the data, allowing the model to generate new samples by first sampling $\mathbf{z}$ from a prior distribution 
+and then mapping it to the data space through the generative model $p(\mathbf{x}|\mathbf{z})$.
 
 ### Evidence Lower Bound (ELBO)
 
@@ -31,27 +31,38 @@ and then mapping it to the data space through the generative model $p_\theta(x|z
 - Let's start by defining the log-likelihood of the observed data
 
 $$
-\log p(\mathbb{X}) = \log p(x_1, x_2, ..., x_n)
+\log p(\mathbf{x}) = \log p(x_1, x_2, ..., x_n)
 $$
 
-- Let's also introduce a variational distribution $q_\phi(z|x)$ to approximate the true posterior $p(z|x)$, where $z$ is a latent variable and $\phi$ represents the parameters of the approximate posterior.
-
-- Now let's expand the log-likelihood of a single data point $x$ using the variational distribution $q_\phi(z|x)$:
+- The log-likelihood of the observed data can also be expressed as the marginal likelihood over the joint distribution of the observed data and the latent variables:
 
 $$
-\log p(x) = \log \int p(x, z) \, dz = \log \int q_\phi(z|x) \frac{p(x, z)}{q_\phi(z|x)} \, dz
+\log p(\mathbf{x}) = \log \int p(\mathbf{x}, \mathbf{z}) \, d\mathbf{z}
 $$
+
+- However, this integral is generally intractable due to the high-dimensional latent variable $\mathbf{z}$ and the complexity of the joint distribution $p(\mathbf{x}, \mathbf{z})$. This makes direct maximization of the log-likelihood difficult, motivating the use of variational inference to approximate the posterior and derive a tractable lower bound.
+
+- Let's introduce a distribution $q_\phi(\mathbf{z}|\mathbf{x})$ that will approximate the true posterior $p(\mathbf{z}|\mathbf{x})$, where $\phi$ represents the parameters of the approximate posterior.
+
+- Now let's expand the log-likelihood of a single data point $\mathbf{x}$ using the approximate posterior $q_\phi(\mathbf{z}|\mathbf{x})$:
+
+$$
+\log p(\mathbf{x}) = \log \int p(\mathbf{x}, \mathbf{z}) \, d\mathbf{z} = \log \int q_\phi(\mathbf{z}|\mathbf{x}) \frac{p(\mathbf{x}, \mathbf{z})}{q_\phi(\mathbf{z}|\mathbf{x})} \, d\mathbf{z}
+$$
+
+- <u>Note</u>: Multiplying and dividing by the approximate posterior $q_\phi(\mathbf{z}|\mathbf{x})$ inside the integral is just a mathematical trick that allows us to introduce the variational distribution into the expression for the log-likelihood, and thereby leads to the derivation of a tractable lower bound (the ELBO) on the log-likelihood.
 
 - Applying Jensen's inequality, we obtain a lower bound on the log-likelihood, which is the Evidence Lower Bound (ELBO):
 
 $$
-\log p(x) \geq \mathbb{E}_{z \sim q_\phi(z|x)} \left[ \log \frac{p(x, z)}{q_\phi(z|x)} \right]
+\log p(\mathbf{x}) \geq \mathbb{E}_{\mathbf{z} \sim q_\phi(\mathbf{z}|\mathbf{x})} \left[ \log \frac{p(\mathbf{x}, \mathbf{z})}{q_\phi(\mathbf{z}|\mathbf{x})} \right]
 $$
 
-TODO: Explain the intuition behind using a marginal distribution from the joint distrubution over data and latent variables.
-In particular, the marginal likelihood $p(x)$ is obtained by integrating out the latent variable $z$ from the joint distribution $p(x, z)$. This allows us to focus on the observed data while still accounting for the latent structure captured by $z$.
+<u>Question</u>: Is the ELBO really tractable? Because the first term still involves an expectation over the latent variable $\mathbf{z}$ and the second term is a KL divergence that might not have a closed-form solution in general.
 
-TODO: Try to derive the ELBO decomposition in a more fundamental manner. The fact that we introduce an approximate variational distribution and just multiply and divide by it inside the logarithm is not very intuitive at the moment.
+- In practice, we often choose the approximate posterior $q_\phi(\mathbf{z}|\mathbf{x})$ and the prior $p(\mathbf{z})$ such that the KL divergence term has a closed-form solution. Typically both are modeled as Gaussian distributions and the closed-form solution is shown in the section below
+
+- The expectation in the first term is approximated using Monte Carlo sampling, making the ELBO tractable for optimization. The sampling based approximation is explained in the section below
 
 
 ### ELBO Decomposition for VAE loss
@@ -170,7 +181,8 @@ $$
 
 **Step 5**: Drop Constants to get the VAE Loss
 
-We can drop the terms that do not contain learnable weights ($\theta $ or $\phi $):
+We can drop the terms that do not contain learnable weights ($\theta$ or $\phi$):
+
 1. $-\frac{D}{2}\log(2\pi\sigma^2)$ is a constant. Its derivative with respect to network parameters is 0. We drop it.
 2. The fixed variance is chosen to be $\sigma^2 = 0.5$. This causes the scaling factor $\frac{1}{2\sigma ^{2}}$ to become exactly $\frac{1}{2(0.5)} = 1$.
 
@@ -185,4 +197,5 @@ $$
 $$
 \text{Reconstruction\ Loss} = \|{}x-\mu _{\theta }(z_\phi)\|{}^{2}
 $$
+
 This is precisely the Sum of Squared Errors (SSE) or Mean Squared Error (MSE) between the input data and decoded data.

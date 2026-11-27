@@ -87,6 +87,8 @@ $$
 
 where $\beta_t$ is a variance schedule that controls the amount of noise added at each time step. This Markov chain is called the forward diffusion process and is fixed, meaning it is not learned during training.
 
+### TODO: Variance preserving property of the forward process
+
 
 ## Simplifying the Variational Lower Bound
 
@@ -210,4 +212,74 @@ $$
 This formulation allows the model to focus on learning the reverse diffusion process effectively, without being influenced by the fixed prior matching term.
 
 
-## Intermediate KL Divergences (TODO)
+## Intermediate KL Divergences
+
+### Estimating the Posterior $q(\boldsymbol{x}_{t-1}|\boldsymbol{x}_{t}, \boldsymbol{x}_0)$
+
+We still have a problem of intractability when it comes to computing the intermediate KL divergence terms, as they involve an expectation over the true posterior $q(\boldsymbol{x}_{t-1}|\boldsymbol{x}_{t}, \boldsymbol{x}_0)$, which is unknown.
+
+However, from equation xx, we can re-wrtie the posterior as
+
+$$
+q(\boldsymbol{x}_{t-1}|\boldsymbol{x}_{t}, \boldsymbol{x}_0) = \frac{q(\boldsymbol{x}_{t}|\boldsymbol{x}_{t-1}) \cdot q(\boldsymbol{x}_{t-1}|\boldsymbol{x}_0)}{q(\boldsymbol{x}_{t} | \boldsymbol{x}_0)}
+$$
+
+All three terms in the RHS are known from the fixed forward diffuusion process. All 3 of them are Gaussian distributions, which allows us to compute the posterior $q(\boldsymbol{x}_{t-1}|\boldsymbol{x}_{t}, \boldsymbol{x}_0)$ in closed form as another Gaussian distribution given by: 
+
+$$
+q(\boldsymbol{x}_{t-1}|\boldsymbol{x}_{t}, \boldsymbol{x}_0) = \mathcal{N}(\boldsymbol{x}_{t-1}; \tilde{\boldsymbol{\mu}}_t(\boldsymbol{x}_t, \boldsymbol{x}_0), \tilde{\beta}_t \mathbf{I})
+$$
+
+where
+
+$$
+\tilde{\boldsymbol{\mu}}_t(\boldsymbol{x}_t, \boldsymbol{x}_0) = \frac{\sqrt{\alpha_t} (1 - \alpha_{t-1})}{1 - \alpha_t} \boldsymbol{x}_0 + \frac{\sqrt{\alpha_{t-1}} \beta_t}{1 - \alpha_t} \boldsymbol{x}_t
+$$
+and
+$$
+\tilde{\beta}_t = \frac{(1 - \alpha_{t-1}) \beta_t}{1 - \alpha_t}
+$$
+
+The derivation of this Gaussian distribution is presented in Appendix A (TODO)
+
+
+### Parameterizing the Reverse Process
+
+In the DDPM paper, the reverse process is parameterized as a Gaussian distribution with mean and variance predicted by a neural network. Specifically, the reverse process is defined as:
+
+$$
+p_\theta(\boldsymbol{x}_{t-1}|\boldsymbol{x}_t) = \mathcal{N}(\boldsymbol{x}_{t-1}; \boldsymbol{\mu}_\theta(\boldsymbol{x}_t, t), \Sigma_\theta(\boldsymbol{x}_t, t))
+$$
+
+where $\boldsymbol{\mu}_\theta$ and $\Sigma_\theta$ are the mean and covariance predicted by the neural network with parameters $\theta$. The network is trained to approximate the true posterior $q(\boldsymbol{x}_{t-1}|\boldsymbol{x}_t, \boldsymbol{x}_0)$ derived above.
+
+For simplification, the authors choose to nor learn the covaraince matrix of the reverse transition and instead fix it to a time-dependent constant $\Sigma_\theta(\boldsymbol{x}_t, t) = \sigma_t^2 \mathbf{I}$.
+
+
+### Closed-form KL Divergence
+
+Given that both the true posterior $q(\boldsymbol{x}_{t-1}|\boldsymbol{x}_t, \boldsymbol{x}_0)$ and the reverse process $p_\theta(\boldsymbol{x}_{t-1}|\boldsymbol{x}_t)$ are Gaussian distributions, the KL divergence between them can be computed in closed form. For two multivariate and isotropic Gaussian distributions $\mathcal{N}(\boldsymbol{\mu}_1, \sigma_1^2 \mathbf{I})$ and $\mathcal{N}(\boldsymbol{\mu}_2, \sigma_2^2 \mathbf{I})$, the KL divergence is given by:
+
+$$
+\text{KL}(\mathcal{N}(\boldsymbol{\mu}_1, \sigma_1^2 \mathbf{I}) \| \mathcal{N}(\boldsymbol{\mu}_2, \sigma_2^2 \mathbf{I})) = \frac{1}{2} \left[ d \log \frac{\sigma_2^2}{\sigma_1^2} - d + \frac{d \sigma_1^2}{\sigma_2^2} + \frac{\|\boldsymbol{\mu}_2 - \boldsymbol{\mu}_1\|^2}{\sigma_2^2} \right]
+$$
+
+where $d$ is the dimensionality of the Gaussian distributions. This formula can be directly applied to compute $\text{KL}(q(\boldsymbol{x}_{t-1}|\boldsymbol{x}_t, \boldsymbol{x}_0) \| p_\theta(\boldsymbol{x}_{t-1}|\boldsymbol{x}_t))$.
+
+$$
+\text{KL}(q(\boldsymbol{x}_{t-1}|\boldsymbol{x}_t, \boldsymbol{x}_0) \| p_\theta(\boldsymbol{x}_{t-1}|\boldsymbol{x}_t)) = \frac{1}{2} \left[ d \log \frac{\sigma_t^2}{\tilde{\beta}_t} - d + \frac{d \tilde{\beta}_t}{\sigma_t^2} + \frac{\|\boldsymbol{\mu}_\theta(\boldsymbol{x}_t, t) - \tilde{\boldsymbol{\mu}}_t(\boldsymbol{x}_t, \boldsymbol{x}_0)\|^2}{\sigma_t^2} \right]
+$$
+
+The first 3 terms involving the variances do not depend on the model parameters $\theta$ and thus can be ignored during training. Therefore, the training objective can be simplified to minimizing the squared error between the predicted mean and the true posterior mean:
+
+$$
+L_t =  \mathbb{E}_q \left[ \frac{1}{2 \sigma_t^2} \|\boldsymbol{\mu}_\theta(\boldsymbol{x}_t, t) - \tilde{\boldsymbol{\mu}}_t(\boldsymbol{x}_t, \boldsymbol{x}_0)\|^2 \right] + C
+$$
+
+
+### Reparameterize to Predict Noise (TODO)
+
+
+### Training Objective (TODO)
+
+### Simplified Training Objective (TODO)
